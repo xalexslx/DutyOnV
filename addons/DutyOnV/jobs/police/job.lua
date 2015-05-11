@@ -52,6 +52,8 @@ function Police:__init()
 	self.state				= STATE_NONE
 	self.partner			= nil
 	self.menus				= {}
+	self.callOutIndex		= 0
+	self.callOutVars		= {}
 	
 	-- Menus
 	self:CreateMenus()
@@ -140,7 +142,13 @@ end
 -- Return true or false according to your custom rules.
 -- 
 function Police:CanExecuteActiveEvents()
-	return self.onDuty
+	-- Player didn't select his/her outfit and vehicle
+	if not self:IsOnDuty() or self.state ~= STATE_READY then return false end
+	
+	-- Callout already running
+	if self.callOutIndex ~= 0 then return false end
+	
+	return true
 end
 
 -- Police:CreateActiveEvent()
@@ -150,7 +158,16 @@ end
 -- Return true if your job created an event, false otherwise.
 -- 
 function Police:CreateActiveEvent()
-	return true
+	
+	local player = LocalPlayer()
+	
+	-- Create a logic to randomize available callouts
+	if math.random(100) < 10 then
+		-- 10% chance of creating a callout
+		
+	end
+	
+	return false
 end
 
 -- Police:CanExecuteRandomEvents()
@@ -164,7 +181,9 @@ end
 -- 
 function Police:CanExecuteRandomEvents()
 	-- Player didn't select his/her outfit and vehicle
-	if self.state ~= STATE_READY then return false end
+	if not self:IsOnDuty() or self.state ~= STATE_READY then return false end
+	
+	return true
 end
 
 -- Police:CreateRandomEvent()
@@ -174,6 +193,26 @@ end
 -- Return true if your job created an event, false otherwise.
 -- 
 function Police:CreateRandomEvent()
+	
+	local player = LocalPlayer()
+	
+	--if math.random(100) < 25 then
+	
+	if not player:IsInVehicle() then
+		local nearby_peds 	= player:GetNearbyPeds(15)
+		
+		if table.getn(nearby_peds) > 0 then
+			local attacker	= nearby_peds[math.random(table.getn(nearby_peds))]
+			if attacker.ID ~= self.partner.ID and not attacker:IsInVehicle() then
+				AI.ClearTasks(attacker.ID)
+				natives.AI.TASK_COMBAT_PED(attacker.ID, player.PlayerID, 0, 16)
+				DutyUtils.Debug("Attacking...")
+				return true
+			end
+		end
+	end
+	--end
+	
 	return false
 end
 
@@ -261,10 +300,17 @@ function Police:OnSelectVehicle(menu, model)
 end
 
 function Police:SetupPlayer(player)
+	-- Give weapons
 	player:AllowWeaponSwitching(true)
 	player:DelayedGiveWeapon("WEAPON_PISTOL", 1000)
 	
-	natives.PLAYER.SET_POLICE_IGNORE_PLAYER(player, true)
+	-- Clear wanted level
+	player:ClearWantedLevel()
+	
+	-- Set player as a police officer
+	natives.PLAYER.SET_POLICE_IGNORE_PLAYER(player.PlayerID, true)
+	natives.PLAYER.SET_MAX_WANTED_LEVEL(0)
+	natives.PED.SET_PED_AS_COP(player.PlayerID, true)
 end
 
 function Police:SetupPartner(ped)
