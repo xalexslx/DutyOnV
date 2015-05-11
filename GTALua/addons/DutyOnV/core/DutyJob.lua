@@ -77,10 +77,13 @@ end
 -- DutyJob:CreateActiveEvent()
 -- 
 -- This method is called when the user wants a new active event to be created.
+--
+-- If skipDelay flag is active, the script is really expecting you to create an
+-- event, such as this method has been called probably by a console command.
 -- 
 -- Return true if your job created an event, false otherwise.
 -- 
-function DutyJob:CreateActiveEvent()
+function DutyJob:CreateActiveEvent(skipDelay)
 	return false
 end
 
@@ -101,9 +104,12 @@ end
 -- 
 -- This method is called when the user wants a new random event to be created.
 --
+-- If skipDelay flag is active, the script is really expecting you to create an
+-- event, such as this method has been called probably by a console command.
+--
 -- Return true if your job created an event, false otherwise.
 -- 
-function DutyJob:CreateRandomEvent()
+function DutyJob:CreateRandomEvent(skipDelay)
 	return false
 end
 

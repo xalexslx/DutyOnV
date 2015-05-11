@@ -178,10 +178,13 @@ end
 -- Police:CreateActiveEvent()
 -- 
 -- This method is called when the user wants a new active event to be created.
+--
+-- If skipDelay flag is active, the script is really expecting you to create an
+-- event, such as this method has been called probably by a console command.
 -- 
 -- Return true if your job created an event, false otherwise.
 -- 
-function Police:CreateActiveEvent()
+function Police:CreateActiveEvent(skipDelay)
 	
 	local player = LocalPlayer()
 	
@@ -214,9 +217,12 @@ end
 -- 
 -- This method is called when the user wants a new random event to be created.
 --
+-- If skipDelay flag is active, the script is really expecting you to create an
+-- event, such as this method has been called probably by a console command.
+--
 -- Return true if your job created an event, false otherwise.
 -- 
-function Police:CreateRandomEvent()
+function Police:CreateRandomEvent(skipDelay)
 	
 	local player = LocalPlayer()
 	
@@ -227,18 +233,30 @@ function Police:CreateRandomEvent()
 		
 		if table.getn(nearby_peds) > 0 then
 			local attacker	= nearby_peds[math.random(table.getn(nearby_peds))]
-			if (self.partner == nil or attacker.ID ~= self.partner.ID) and not attacker:IsInVehicle() then
-				-- Attack player
-				DutyUtils.Debug("Attacking... ", attacker.ID)
-				
-				self:SetupAttacker(attacker)
-				
-				attacker:AllowWeaponSwitching(true)
-				attacker:DelayedGiveWeapon("WEAPON_PISTOL", 0)
-				AI.ClearTasks(attacker.ID)
-				natives.AI.TASK_COMBAT_PED(attacker.ID, player.ID, 0, 16)
-				
-				return true
+			-- Check if the ped is an animal (seriously)
+			if not DutyUtils.IsPedAnimal(attacker) then
+				-- Check if the ped is your partner or is inside of a car
+				if (self.partner == nil or attacker.ID ~= self.partner.ID) and not attacker:IsInVehicle() then
+					-- Attack player
+					DutyUtils.Debug("Attacking... ", attacker.ID)
+					
+					natives.AI.TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(attacker.ID, true)
+					natives.WEAPON.REMOVE_ALL_PED_WEAPONS(attacker.ID, true)
+					natives.WEAPON.GIVE_WEAPON_TO_PED(attacker.ID, 0xA2719263, 0, true, true)
+					natives.WEAPON.SET_CURRENT_PED_WEAPON(attacker.ID, 0xA2719263, true)
+					natives.PED.SET_PED_CAN_SWITCH_WEAPON(attacker.ID, false)
+					natives.PED.SET_PED_AS_ENEMY(attacker.ID, true)
+					natives.AI.CLEAR_PED_TASKS(attacker.ID)
+					natives.AI.TASK_COMBAT_PED(attacker.ID, player.ID, 0, 16)
+					natives.PED.SET_PED_KEEP_TASK(attacker.ID, true)
+					
+					attacker:SetRelationshipGroupHash(self.group_hashes['playerHate'])
+					
+					attacker:AttachBlip():SetBlipColour(1)
+					blipListener.AddEntity(attacker)
+					
+					return true
+				end
 			end
 		end
 	end
@@ -381,13 +399,15 @@ end
 function Police:SetupAttacker(ped)
 	-- Block temporary events
 	natives.AI.TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(ped.ID, true)
+	ped:SetRelationshipGroupHash(self.group_hashes['playerHate'])
 	
 	-- Set relationship
 	ped:SetRelationshipGroupHash(self.group_hashes['playerHate'])
 	
+	natives.ENTITY.SET_ENTITY_LOD_DIST(ped.ID, 1000)
 	-- Combat attributes
-	natives.PED.SET_PED_FLEE_ATTRIBUTES(ped.ID, 0, false)
-	natives.PED.SET_PED_COMBAT_ATTRIBUTES(ped.ID, 17, true)
+	--natives.PED.SET_PED_FLEE_ATTRIBUTES(ped.ID, 0, false)
+	--natives.PED.SET_PED_COMBAT_ATTRIBUTES(ped.ID, 17, true)
 	
 	ped:AttachBlip():SetBlipColour(1)
 end

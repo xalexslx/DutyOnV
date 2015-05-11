@@ -47,6 +47,8 @@ function DutyOnVST:Run()
 	end
 	-- Script Loop
 	while self:IsRunning() do
+		-- Entity checking
+		blipListener.Tick()
 		-- Run DutyOnV loop
 		duty:OnLoop()
 		-- Wait

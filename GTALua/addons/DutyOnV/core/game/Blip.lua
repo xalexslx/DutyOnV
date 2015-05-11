@@ -14,6 +14,44 @@
 -- limitations under the License.
 --
 
+blipListener = {}
+blipListener.entityList = {}
+
+
+function blipListener.AddEntity(entity)
+	table.insert(blipListener.entityList, entity)
+end
+
+function blipListener.Tick()
+	local index	= 1 
+	local size	= #blipListener.entityList
+	
+	while index <= size do
+	
+		local entity = blipListener.entityList[index]
+		local delete = false
+		
+		if entity:Exists() and entity:GetBlip() and entity:GetBlip():Exists() then
+			
+			-- Dead Ped
+			if entity:IsPed() and Ped(entity.ID):IsDead() then
+				entity:GetBlip():Delete()
+				delete = true
+			end
+			
+		else
+			delete = true
+		end
+	
+		if delete then
+			blipListener.entityList[index]	= blipListener.entityList[size] 
+			blipListener.entityList[size]	= nil 
+			size = size - 1 
+		else
+			index = index + 1
+		end
+	end
+end
 
 function Blip:SetBlipColour(i)
 	self:_CheckExists()

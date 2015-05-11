@@ -62,3 +62,19 @@ function DutyUtils.LoadJobs()
 	end
 end
 
+function DutyUtils.IsPedAnimal(ped)
+	local hashes = {
+		WEAPON_ANIMAL_RETRIEVER, WEAPON_SMALL_DOG, WEAPON_TIGER_SHARK, WEAPON_HAMMERHEAD_SHARK,
+		WEAPON_KILLER_WHALE, WEAPON_BOAR, WEAPON_PIG, WEAPON_COYOTE, WEAPON_DEER, WEAPON_HEN,
+		WEAPON_RABBIT, WEAPON_CAT, WEAPON_COW, WEAPON_BIRD_CRAP
+	}
+	
+	for i,k in ipairs(hashes) do
+		if natives.WEAPON.HAS_PED_GOT_WEAPON(ped, k, 0) then
+			return true
+		end
+	end
+	
+	return false
+end
+
