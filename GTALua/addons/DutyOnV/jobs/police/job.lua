@@ -198,15 +198,20 @@ function Police:CreateRandomEvent()
 	
 	--if math.random(100) < 25 then
 	
-	if not player:IsInVehicle() and self:IsOnDuty() then
+	if not player:IsInVehicle() and self:IsOnDuty() and self.state == STATE_READY then
 		local nearby_peds 	= player:GetNearbyPeds(15)
 		
 		if table.getn(nearby_peds) > 0 then
 			local attacker	= nearby_peds[math.random(table.getn(nearby_peds))]
 			if attacker.ID ~= self.partner.ID and not attacker:IsInVehicle() then
+				attacker:AllowWeaponSwitching(true)
+				attacker:DelayedGiveWeapon("WEAPON_PISTOL", 0)
 				AI.ClearTasks(attacker.ID)
+				natives.AI.TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(attacker.ID, true)
+				natives.PED.SET_PED_FLEE_ATTRIBUTES(attacker.ID, 0, false)
+				natives.PED.SET_PED_COMBAT_ATTRIBUTES(attacker.ID, 17, true)
 				natives.AI.TASK_COMBAT_PED(attacker.ID, player.PlayerID, 0, 16)
-				DutyUtils.Debug("Attacking...")
+				DutyUtils.Debug("Attacking... ", attacker.ID)
 				return true
 			end
 		end
