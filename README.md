@@ -19,3 +19,7 @@ This plugin allow the player execute different jobs in Grand Theft Auto V and is
 ## Developing Jobs
 * Documentation will be updated soon, look into GTALUA/addons/DutyOnV/jobs for examples.
 
+## Contributing
+* Fork - https://help.github.com/articles/fork-a-repo/
+* Develop
+* Submit a pull request - https://help.github.com/articles/using-pull-requests/
