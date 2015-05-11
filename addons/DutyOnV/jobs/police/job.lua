@@ -198,7 +198,7 @@ function Police:CreateRandomEvent()
 	
 	--if math.random(100) < 25 then
 	
-	if not player:IsInVehicle() then
+	if not player:IsInVehicle() and self:IsOnDuty() then
 		local nearby_peds 	= player:GetNearbyPeds(15)
 		
 		if table.getn(nearby_peds) > 0 then

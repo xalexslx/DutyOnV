@@ -65,27 +65,35 @@ function DutyOnV:OnLoop()
 			self.delays['lastEventHandling'] = game.GetTime() + 1000
 			
 			-- Active Events
-			if self.activeJob ~= nil then
-				if self.delays['lastActiveEvent'] < game.GetTime() and self.activeJob:CheckPlayerRequirements() and self.activeJob:CanExecuteActiveEvents() then
-					-- Try to create an active event
-					if self.activeJob:CreateActiveEvent() then
-						self.delays['lastActiveEvent'] = game.GetTime() + (DutyConfig.Core.MinDelayActiveEvents * 1000)
-					end
-				end
-			end
+			self:ExecuteActive(false)
 			
 			-- Random Events
-			local job = self.jobs[math.random(#self.jobs)]
-			if self.delays['lastRandomEvent'] < game.GetTime() and job:CanExecuteRandomEvents() then
-				if job:CreateRandomEvent() then
-					self.delays['lastRandomEvent'] = game.GetTime() + (DutyConfig.Core.MinDelayRandomEvents * 1000)
-				end
-			end
+			self:ExecuteRandom(false)
 		end
 		
 		-- Tick
 		for _,job in pairs(self.jobs) do
 			job:Tick()
+		end
+	end
+end
+
+function DutyOnV:ExecuteActive(skipDelay)
+	if self.activeJob ~= nil then
+		if (skipDelay or self.delays['lastActiveEvent'] < game.GetTime()) and self.activeJob:CheckPlayerRequirements() and self.activeJob:CanExecuteActiveEvents() then
+			-- Try to create an active event
+			if self.activeJob:CreateActiveEvent() then
+				self.delays['lastActiveEvent'] = game.GetTime() + (DutyConfig.Core.MinDelayActiveEvents * 1000)
+			end
+		end
+	end
+end
+
+function DutyOnV:ExecuteRandom(skipDelay)
+	local job = self.jobs[math.random(#self.jobs)]
+	if (skipDelay or self.delays['lastRandomEvent'] < game.GetTime()) and job:CanExecuteRandomEvents() then
+		if job:CreateRandomEvent() then
+			self.delays['lastRandomEvent'] = game.GetTime() + (DutyConfig.Core.MinDelayRandomEvents * 1000)
 		end
 	end
 end

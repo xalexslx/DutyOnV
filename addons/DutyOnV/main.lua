@@ -30,12 +30,13 @@ include("core/DutyJob.lua")
 include("config/DutyOnV.lua")
 
 -- Jobs
-local jobList = DutyUtils:LoadJobs()
+local jobList 	= DutyUtils:LoadJobs()
+local duty		= nil
 
 -- Run function
 function DutyOnVST:Run()
 	-- Create object
-	local duty = DutyOnV()
+	duty = DutyOnV()
 	-- Load Jobs
 	for _,job_name in pairs(jobList) do
 		duty:LoadJob(job_name)
@@ -60,3 +61,16 @@ end
  
 -- Register Thread
 DutyOnVST:Register()
+
+
+-- DutyConsole
+DutyConsole = {}
+
+function DutyConsole.RandomEventCommand(...)
+	if duty ~= nil then
+		print("Executing random event...")
+		duty:ExecuteRandom(true)
+		print("")
+	end
+end
+console.RegisterCommand("duty_event_random", DutyConsole.RandomEventCommand)

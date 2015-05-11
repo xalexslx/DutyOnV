@@ -1,14 +1,21 @@
 # DutyOnV
-This LUA (using GTALua) addon allow the player have different kind of jobs, where it is controlled by DutyOnV scripting engines.
+This plugin allow the player execute different jobs in Grand Theft Auto V and is easily extensive allowing developers to create new kind of jobs.
+
+## Features
+* Menu for job selection
+* Random world events (things happening without your action).
+* Active events (job related events)
+* Custom job creation (Police job sample provided).
 
 ## Requirements
 * Grand Theft Auto V
-* ScriptHookV
-* GTALua
+* ScriptHookV - http://dev-c.com/gtav/scripthookv/
+* GTALua - http://www.gtalua.com/
 
 ## Installation
-* Copy this addon contents to your addon folder.
+* Copy this plugin contents to your GTALUA/addons folder.
 * Run the game and press F9 to activate.
 
 ## Developing Jobs
-* WIP
+* Documentation will be updated soon, look into GTALUA/addons/DutyOnV/jobs for examples.
+
