@@ -41,7 +41,7 @@ local POLICE_VEHICLES = {
 	['Police Rancher (Snow)']		= VEHICLE_POLICEOLD1,
 	['Police Esperanto (Snow)']		= VEHICLE_POLICEOLD2,
 	['Police TransportVan']			= VEHICLE_POLICET,
-	['Police Helicopter']			= VEHICLE_POLMAV,
+	--['Police Helicopter']			= VEHICLE_POLMAV,
 }
 
 -- CTor
@@ -54,6 +54,12 @@ function Police:__init()
 	self.menus				= {}
 	self.callOutIndex		= 0
 	self.callOutVars		= {}
+	self.group_hashes		= {}
+	
+	-- Attackers hash
+	self.group_hashes['playerHate'] = Ped.AddRelationshipGroup("DutyPolice_PlayerHate")
+	natives.PED.SET_RELATIONSHIP_BETWEEN_GROUPS(1, self.group_hashes['playerHate'], 0x6F0783F5)
+	natives.PED.SET_RELATIONSHIP_BETWEEN_GROUPS(5, 0x6F0783F5, self.group_hashes['playerHate'])
 	
 	-- Menus
 	self:CreateMenus()
@@ -76,6 +82,23 @@ function Police:CreateMenus()
 		self.menus['outfits']:AddOption(v, "OnSelectOutfit", k)
 	end
 	
+	-- Partner
+	self.menus['partners']	= gui.DutyMenu(self, {
+		Title = "Select Partner",			-- title of the menu
+		x = 0.03, 							-- x-coordinate, 0.0 = left, 1.0 = right
+		y = 0.02, 							-- y-coordinate, 0.0 = top, 1.0 = bottom
+		Width = 0.23, 						-- width of the whole menu
+		TitleHeight = 0.05, 				-- height of the title box
+		OptionHeight = 0.03, 				-- height of an option
+		CanBeClosed = false 				-- allow close
+	})
+	
+	-- Partners
+	self.menus['partners']:AddOption("No Partner", "OnSelectOutfit", 0)
+	for k,v in pairs(POLICE_OUTFITS) do
+		self.menus['partners']:AddOption(v, "OnSelectOutfit", k)
+	end
+	
 	-- Vehicle Menu
 	self.menus['vehicles']	= gui.DutyMenu(self, {
 		Title = "Select Vehicle",			-- title of the menu
@@ -87,7 +110,8 @@ function Police:CreateMenus()
 		CanBeClosed = false 				-- allow close
 	})
 	
-	-- Outfits
+	-- Vehicles
+	self.menus['vehicles']:AddOption("On Foot", "OnSelectVehicle", 0)
 	for k,v in pairs(POLICE_VEHICLES) do
 		self.menus['vehicles']:AddOption(k, "OnSelectVehicle", v)
 	end
@@ -199,19 +223,21 @@ function Police:CreateRandomEvent()
 	--if math.random(100) < 25 then
 	
 	if not player:IsInVehicle() and self:IsOnDuty() and self.state == STATE_READY then
-		local nearby_peds 	= player:GetNearbyPeds(15)
+		local nearby_peds 	= player:GetNearbyPeds(30)
 		
 		if table.getn(nearby_peds) > 0 then
 			local attacker	= nearby_peds[math.random(table.getn(nearby_peds))]
-			if attacker.ID ~= self.partner.ID and not attacker:IsInVehicle() then
+			if (self.partner == nil or attacker.ID ~= self.partner.ID) and not attacker:IsInVehicle() then
+				-- Attack player
+				DutyUtils.Debug("Attacking... ", attacker.ID)
+				
+				self:SetupAttacker(attacker)
+				
 				attacker:AllowWeaponSwitching(true)
 				attacker:DelayedGiveWeapon("WEAPON_PISTOL", 0)
 				AI.ClearTasks(attacker.ID)
-				natives.AI.TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(attacker.ID, true)
-				natives.PED.SET_PED_FLEE_ATTRIBUTES(attacker.ID, 0, false)
-				natives.PED.SET_PED_COMBAT_ATTRIBUTES(attacker.ID, 17, true)
-				natives.AI.TASK_COMBAT_PED(attacker.ID, player.PlayerID, 0, 16)
-				DutyUtils.Debug("Attacking... ", attacker.ID)
+				natives.AI.TASK_COMBAT_PED(attacker.ID, player.ID, 0, 16)
+				
 				return true
 			end
 		end
@@ -235,11 +261,11 @@ function Police:Tick()
 	
 	-- Is Player ready?
 	if self.state == STATE_SELECT_OUTFIT then
-		self.menus['outfits']:Open()
+		self:OpenMenu('outfits')
 	elseif self.state == STATE_SELECT_PARTNER then
-		self.menus['outfits']:Open()
+		self:OpenMenu('partners')
 	elseif self.state == STATE_SELECT_VEHICLE then
-		self.menus['vehicles']:Open()
+		self:OpenMenu('vehicles')
 	elseif self.state == STATE_READY then
 		
 	end
@@ -253,9 +279,27 @@ function Police:Terminate()
 	DutyJob:Terminate()
 end
 
+function Police:OpenMenu(menuid)
+	-- Close all menus
+	for _,menu in pairs(self.menus) do
+		menu:Close()
+	end
+
+	self.menus[menuid]:Open()
+end
 
 function Police:OnSelectOutfit(menu, model)
-	-- Model Hash
+	
+	-- Partner skip
+	if model == 0 then
+		if self.state == STATE_SELECT_PARTNER then
+			self.state 		= STATE_SELECT_VEHICLE
+		end
+		
+		return
+	end
+	
+	-- Model hash
 	local model_hash = natives.GAMEPLAY.GET_HASH_KEY(model)
 	if natives.STREAMING.IS_MODEL_IN_CDIMAGE(model_hash) and natives.STREAMING.IS_MODEL_VALID(model_hash) then
 	
@@ -266,15 +310,17 @@ function Police:OnSelectOutfit(menu, model)
 		if self.state == STATE_SELECT_OUTFIT then
 			-- Change player model
 			LocalPlayer():SetModel(model_hash)
+			
 			self:SetupPlayer(LocalPlayer())
+			
+			self:OpenMenu('partners')
 			
 			self.state 		= STATE_SELECT_PARTNER
 		elseif self.state == STATE_SELECT_PARTNER then
 			-- Create partner
 			self.partner	= game.CreatePed(model_hash, LocalPlayer():GetOffsetVector(0,2,0))
 			
-			self.menus['outfits']:Close()
-			self.menus['vehicles']:Open()
+			self:OpenMenu('vehicles')
 			
 			self:SetupPartner(self.partner)
 			
@@ -289,6 +335,14 @@ function Police:OnSelectOutfit(menu, model)
 end
 
 function Police:OnSelectVehicle(menu, model)
+	-- State machine
+	self.state 		= STATE_READY
+	self.menus['vehicles']:Close()
+	
+	if model == 0 then
+		return
+	end
+	
 	-- Position
 	local vehicle_pos = LocalPlayer():GetOffsetVector(0,5,0)
 	
@@ -299,9 +353,6 @@ function Police:OnSelectVehicle(menu, model)
 	
 	-- Release Model
 	streaming.ReleaseModel(model)
-	
-	self.state 		= STATE_READY
-	self.menus['vehicles']:Close()
 end
 
 function Police:SetupPlayer(player)
@@ -324,4 +375,19 @@ function Police:SetupPartner(ped)
 	
 	-- Group Member / Bodyguard
 	ped:AddGroupMember(LocalPlayer())
+end
+
+
+function Police:SetupAttacker(ped)
+	-- Block temporary events
+	natives.AI.TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(ped.ID, true)
+	
+	-- Set relationship
+	ped:SetRelationshipGroupHash(self.group_hashes['playerHate'])
+	
+	-- Combat attributes
+	natives.PED.SET_PED_FLEE_ATTRIBUTES(ped.ID, 0, false)
+	natives.PED.SET_PED_COMBAT_ATTRIBUTES(ped.ID, 17, true)
+	
+	ped:AttachBlip():SetBlipColour(1)
 end

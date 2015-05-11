@@ -20,6 +20,10 @@ math.randomseed(os.time())
 -- Create a ScriptThread
 DutyOnVST = ScriptThread("DutyOnV")
 
+-- GTALua extension
+include("core/game/Blip.lua")
+include("core/game/Ped.lua")
+
 -- Core
 include("core/DutyOnV.lua")
 include("core/DutyMenu.lua")
@@ -56,7 +60,7 @@ end
 -- OnError
 function DutyOnVST:OnError()
 	print("Oh no! DutyOnV caused an error!")
-	self:Reset()
+	self:Kill()
 end
  
 -- Register Thread

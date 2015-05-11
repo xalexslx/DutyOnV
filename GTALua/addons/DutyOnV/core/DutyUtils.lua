@@ -43,15 +43,22 @@ function DutyUtils.GetClassName(name)
 end
 
 function DutyUtils.LoadJobs()
+	local success, dir_list, _file_list = file.FindFiles("GTALua/addons/DutyOnV/jobs/*")
 	local jobList = {}
-	for dir in io.popen([[dir "%CD%/GTALua/addons/DutyOnV/jobs" /b /ad]]):lines() do
-		if dir:sub(1,1) == "_" then
-			-- Nothing
-		else
-			table.insert(jobList, dir)
-			include("../jobs/"..dir.."/job.lua")
+	if not success then
+		print("Failed to get directory list for GTALua/addons/DutyOnV/jobs/")
+		print("Unable to load jobs!")
+		return jobList
+	else
+		for _,dir in pairs(dir_list) do
+			if dir:sub(1,1) == "_" then
+				-- Nothing
+			else
+				table.insert(jobList, dir)
+				include("../jobs/"..dir.."/job.lua")
+			end
 		end
+		return jobList
 	end
-	return jobList
 end
 
